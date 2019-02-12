@@ -3,7 +3,9 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import logging
 
+logging.basicConfig(level=logging.WARNING) #Comment this before submitting
 
 class sequential(object):
     def __init__(self, *args):
@@ -97,6 +99,7 @@ class flatten(object):
         #############################################################################
         newShape = (feat.shape[0], np.prod(feat.shape[1:]))
         output = np.reshape(feat, newShape)
+        logging.debug(str.format("flatten.forward: {} : feat shape = {}, type = {}; Output shape = {}, type = {}", self.name, feat.shape, feat.dtype, output.shape, output.dtype))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -113,7 +116,8 @@ class flatten(object):
         # You need to reshape (flatten) the input gradients and return.             #
         # Store the results in the variable dfeat provided above.                  #
         #############################################################################
-
+        dfeat = np.reshape(dprev, feat.shape)
+        logging.debug(str.format("flatten.backward: {} : feat shape = {}, type = {}; dprev shape = {}, type = {}; dfeat shape = {}, type = {}", self.name, feat.shape, feat.dtype, dprev.shape, dprev.dtype, dfeat.shape, dfeat.dtype))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -153,13 +157,10 @@ class fc(object):
         # You will probably need to reshape the input features.                     #
         # Store the results in the variable output provided above.                  #
         #############################################################################
-        input_bz = feat.shape[0]
         b = self.params[self.b_name]
-        b_bz = []
-        for i in range(input_bz):
-            b_bz = np.append(b_bz, b)
-        b_bz = b_bz.reshape(input_bz, self.output_dim)
+        logging.debug(str.format("fc.forward: {} : feat shape = {}, param w shape = {}, b shape = {}", self.name, feat.shape, self.params[self.w_name].shape, b.shape))
         output = (np.matmul(feat, self.params[self.w_name])) + b
+        logging.debug(str.format("fc.forward: {0} : Output shape = {1}", self.name, output.shape))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -182,9 +183,12 @@ class fc(object):
         # corresponding name.                                                       #
         # Store the output gradients in the variable dfeat provided above.          #
         #############################################################################
-        self.grads[self.w_name] = np.matmul(np.transpose(feat), dprev)
+        logging.debug(str.format("fc.backward: {} : feat shape = {}, type = {}; dprev shape = {}, type = {}", self.name, feat.shape, feat.dtype, dprev.shape, dprev.dtype))
+        self.grads[self.w_name] = np.matmul(feat.T, dprev)
         self.grads[self.b_name] = np.sum(dprev, axis=0)
-        dfeat = np.matmul(dprev, np.transpose(self.params[self.w_name]))
+        logging.debug(str.format("fc.backward: {0} : W Params shape = {1}", self.name, self.params[self.w_name].shape))
+        dfeat = np.matmul(dprev, self.params[self.w_name].T)
+        logging.debug(str.format("fc.backward: {0} : dfeat shape = {1}", self.name, dfeat.shape))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -213,6 +217,7 @@ class relu(object):
         #############################################################################
         comparer = np.zeros(feat.shape)
         output = np.maximum(feat, comparer)
+        logging.debug(str.format("relu.forward: {} : feat shape = {}, type = {}; output shape = {}, type = {}", self.name, feat.shape, feat.dtype, output.shape, output.dtype))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -229,8 +234,9 @@ class relu(object):
         # TODO: Implement the backward pass of a rectified linear unit              #
         # Store the output gradients in the variable dfeat provided above.          #
         #############################################################################
-        myFunc = np.frompyfunc(lambda x,dy: 0 if x <= 0 else dy, 2, 1)
-        dfeat = myFunc(feat, dprev)
+        myFunc = np.frompyfunc(lambda x,dy: dy if x >= 0.0 else 0.0, 2, 1)
+        dfeat = myFunc(feat, dprev).astype(dtype = feat.dtype)
+        logging.debug(str.format("relu.backward: {} : feat shape = {}, type = {}; dprev shape = {}, type = {}; dfeat shape = {}, type = {}", self.name, feat.shape, feat.dtype, dprev.shape, dprev.dtype, dfeat.shape, dfeat.dtype))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -317,6 +323,9 @@ class cross_entropy(object):
         self.size_average = size_average
         self.logit = None
         self.label = None
+        # self.target_probs = None
+        self.all_labels = None
+        self.loss = None
 
     def forward(self, feat, label):
         logit = softmax(feat)
@@ -325,12 +334,24 @@ class cross_entropy(object):
         # TODO: Implement the forward pass of an CE Loss                            #
         # Store the loss in the variable loss provided above.                       #
         #############################################################################
-
+        batch_size = logit.shape[0]
+        y = np.zeros_like(logit)
+        for i in range(batch_size):
+            y[(i, label[i])] = 1
+        # probs = np.sum(y, axis = 0, keepdims = True) / batch_size
+        # loss_matrix = np.matmul(np.log(logit), probs.T)
+        loss_matrix = np.log(logit) * y
+        loss = -1 * np.sum(loss_matrix)
+        if (self.size_average):
+            loss /= batch_size
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
         self.logit = logit
         self.label = label
+        # self.target_probs = probs
+        self.all_labels = y
+        self.loss = loss
         return loss
 
     def backward(self):
@@ -343,7 +364,11 @@ class cross_entropy(object):
         # TODO: Implement the backward pass of an CE Loss                           #
         # Store the output gradients in the variable dlogit provided above.         #
         #############################################################################
-
+        # dlogit = logit - self.target_probs
+        dlogit = logit - self.all_labels
+        if (self.size_average):
+            dlogit /= logit.shape[0]
+        logging.debug(str.format("cross_entropy.backward: dlogit shape = {};", dlogit.shape))
         #############################################################################
         #                             END OF YOUR CODE                              #
         #############################################################################
@@ -358,7 +383,8 @@ def softmax(feat):
     #############################################################################
     # TODO: Implement the forward pass of a softmax function                    #
     #############################################################################
-
+    exps = np.exp(feat)
+    scores = exps / np.sum(exps, axis=1, keepdims=True)
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################

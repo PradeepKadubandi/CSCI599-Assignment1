@@ -3,9 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+import logging
 
 from lib.layer_utils import *
 
+logging.basicConfig(level=logging.WARNING) #Comment this before submitting
 
 """ Super Class """
 class Module(object):
@@ -35,7 +37,9 @@ class TestFCReLU(Module):
     def __init__(self, keep_prob=0, dtype=np.float32, seed=None):
         self.net = sequential(
             ########## TODO: ##########
-
+            flatten(name="flat"),
+            fc(20, 10, name="fc1"),
+            relu(name="relu1")
             ########### END ###########
         )
 
@@ -44,7 +48,11 @@ class SmallFullyConnectedNetwork(Module):
     def __init__(self, keep_prob=0, dtype=np.float32, seed=None):
         self.net = sequential(
             ########## TODO: ##########
-
+            flatten(name="flat"),
+            fc(4, 30, name="fc1"),
+            relu(name="relu1"),
+            fc(30, 7, name="fc2"),
+            relu(name="relu2")
             ########### END ###########
         )
 
@@ -70,7 +78,13 @@ class TinyNet(Module):
         """ Some comments """
         self.net = sequential(
             ########## TODO: ##########
-
+            flatten(name="flat"),
+            fc(3 * 32 * 32, 200, name="fc1"),
+            relu(name="relu1"),
+            # fc(500, 200, name="fc_middle"),
+            # relu(name="relu_middle"),
+            fc(200, 10, name="fc2"),
+            relu(name="relu2")
             ########### END ###########
         )
 
