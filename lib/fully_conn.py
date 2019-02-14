@@ -74,17 +74,16 @@ class DropoutNet(Module):
 
 
 class TinyNet(Module):
-    def __init__(self, keep_prob=0, dtype=np.float32, seed=None):
+    def __init__(self, keep_prob=0, dtype=np.float32, seed=None, h_layer1=500, h_layer2=500):
         """ Some comments """
         self.net = sequential(
             ########## TODO: ##########
             flatten(name="flat"),
-            fc(3 * 32 * 32, 200, name="fc1"),
+            fc(3 * 32 * 32, h_layer1, name="fc1"),
             relu(name="relu1"),
-            # fc(500, 200, name="fc_middle"),
-            # relu(name="relu_middle"),
-            fc(200, 10, name="fc2"),
-            relu(name="relu2")
+            # fc(h_layer1, h_layer2, name="fc2"),
+            # relu(name="relu2"),
+            fc(h_layer1, 10, name="fc3")
             ########### END ###########
         )
 
