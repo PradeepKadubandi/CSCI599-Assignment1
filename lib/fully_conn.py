@@ -81,7 +81,7 @@ class TinyNet(Module):
             flatten(name="flat"),
             fc(3 * 32 * 32, h_layer1, name="fc1"),
             relu(name="relu1"),
-            fc(h_layer1, 10, name="fc3")
+            fc(h_layer1, 10, name="fc2")
             ########### END ###########
         )
 
