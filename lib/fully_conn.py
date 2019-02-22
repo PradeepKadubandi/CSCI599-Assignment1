@@ -74,7 +74,7 @@ class DropoutNet(Module):
 
 
 class TinyNet(Module):
-    def __init__(self, keep_prob=0, dtype=np.float32, seed=None, h_layer1=500):
+    def __init__(self, keep_prob=0, dtype=np.float32, seed=None, h_layer1=256):
         """ Some comments """
         self.net = sequential(
             ########## TODO: ##########
